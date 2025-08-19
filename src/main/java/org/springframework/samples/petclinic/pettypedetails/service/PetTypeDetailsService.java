@@ -20,17 +20,6 @@ public class PetTypeDetailsService{
 	@Autowired
 	private PetRepository petRepository;
 
-//	public PetTypeDetails createOrUpdate(PetTypeDetailsDTO petTypeDetailsDTO) {
-//		PetType petType = petTypeRepo.findById(petTypeDetailsDTO.getPetTypeId())
-//			.orElseThrow(() -> new IllegalArgumentException("PetType not found: " + petTypeDetailsDTO.getPetTypeId()));
-//
-//		return petTypeDetailsRepository.save(CommonUtils.mapPetTypeDTOtoEntity(petTypeDetailsDTO, petType));
-//	}
-//
-//	public Optional<PetTypeDetails> getById(Integer petTypeDetailsId) {
-//		return petTypeDetailsRepository.findById(petTypeDetailsId);
-//	}
-
 	public Iterable<PetTypeDetails> getAll() {
 		return petTypeDetailsRepository.findAll();
 	}
