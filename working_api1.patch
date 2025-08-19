@@ -1,0 +1,485 @@
+Index: src/main/java/org/springframework/samples/petclinic/owner/Pet.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/Pet.java b/src/main/java/org/springframework/samples/petclinic/owner/Pet.java
+--- a/src/main/java/org/springframework/samples/petclinic/owner/Pet.java	(revision 30aab0ae764ad845b5eedd76028756835fec771f)
++++ b/src/main/java/org/springframework/samples/petclinic/owner/Pet.java	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
+@@ -15,24 +15,16 @@
+  */
+ package org.springframework.samples.petclinic.owner;
+ 
++import jakarta.persistence.*;
++import org.springframework.format.annotation.DateTimeFormat;
++import org.springframework.samples.petclinic.model.NamedEntity;
++import org.springframework.samples.petclinic.pettypedetails.model.PetTypeDetails;
++
+ import java.time.LocalDate;
+ import java.util.Collection;
+ import java.util.LinkedHashSet;
+ import java.util.Set;
+ 
+-import org.springframework.format.annotation.DateTimeFormat;
+-import org.springframework.samples.petclinic.model.NamedEntity;
+-
+-import jakarta.persistence.CascadeType;
+-import jakarta.persistence.Column;
+-import jakarta.persistence.Entity;
+-import jakarta.persistence.FetchType;
+-import jakarta.persistence.JoinColumn;
+-import jakarta.persistence.ManyToOne;
+-import jakarta.persistence.OneToMany;
+-import jakarta.persistence.OrderBy;
+-import jakarta.persistence.Table;
+-
+ /**
+  * Simple business object representing a pet.
+  *
+@@ -58,6 +50,9 @@
+ 	@OrderBy("date ASC")
+ 	private final Set<Visit> visits = new LinkedHashSet<>();
+ 
++	@OneToOne(mappedBy = "pet", cascade = CascadeType.ALL)
++	public PetTypeDetails petTypeDetails;
++
+ 	public void setBirthDate(LocalDate birthDate) {
+ 		this.birthDate = birthDate;
+ 	}
+@@ -82,4 +77,11 @@
+ 		getVisits().add(visit);
+ 	}
+ 
++	public PetTypeDetails getPetDetails() {
++		return petTypeDetails;
++	}
++
++	public void setPetDetails(PetTypeDetails petDetails) {
++		this.petTypeDetails = petDetails;
++	}
+ }
+Index: src/main/java/org/springframework/samples/petclinic/owner/PetType.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/PetType.java b/src/main/java/org/springframework/samples/petclinic/owner/PetType.java
+--- a/src/main/java/org/springframework/samples/petclinic/owner/PetType.java	(revision 30aab0ae764ad845b5eedd76028756835fec771f)
++++ b/src/main/java/org/springframework/samples/petclinic/owner/PetType.java	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
+@@ -15,10 +15,9 @@
+  */
+ package org.springframework.samples.petclinic.owner;
+ 
++import jakarta.persistence.*;
+ import org.springframework.samples.petclinic.model.NamedEntity;
+-
+-import jakarta.persistence.Entity;
+-import jakarta.persistence.Table;
++import org.springframework.samples.petclinic.pettypedetails.model.PetTypeDetails;
+ 
+ /**
+  * @author Juergen Hoeller Can be Cat, Dog, Hamster...
+@@ -26,5 +25,4 @@
+ @Entity
+ @Table(name = "types")
+ public class PetType extends NamedEntity {
+-
+ }
+Index: src/main/java/org/springframework/samples/petclinic/pettypedetails/controller/PetTypeDetailsController.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/org/springframework/samples/petclinic/pettypedetails/controller/PetTypeDetailsController.java b/src/main/java/org/springframework/samples/petclinic/pettypedetails/controller/PetTypeDetailsController.java
+new file mode 100644
+--- /dev/null	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
++++ b/src/main/java/org/springframework/samples/petclinic/pettypedetails/controller/PetTypeDetailsController.java	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
+@@ -0,0 +1,39 @@
++package org.springframework.samples.petclinic.pettypedetails.controller;
++
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.http.ResponseEntity;
++import org.springframework.samples.petclinic.pettypedetails.dto.PetTypeDetailsDTO;
++import org.springframework.web.bind.annotation.*;
++import org.springframework.validation.annotation.Validated;
++
++
++import org.springframework.samples.petclinic.pettypedetails.model.PetTypeDetails;
++import org.springframework.samples.petclinic.pettypedetails.service.PetTypeDetailsService;
++
++import java.util.List;
++
++
++@RestController
++@RequestMapping("/api/pet-details")
++public class PetTypeDetailsController {
++
++	@Autowired
++	private PetTypeDetailsService petTypeDetailsService;
++
++	@GetMapping
++	public ResponseEntity<Iterable<PetTypeDetails>> getDetails() {
++		return ResponseEntity.ok(petTypeDetailsService.getAll());
++	}
++
++	@PostMapping
++	public ResponseEntity<PetTypeDetails> createDetails(@RequestBody PetTypeDetailsDTO petTypeDetailsDTO) {
++		return ResponseEntity.ok(petTypeDetailsService.createDetails(petTypeDetailsDTO));
++	}
++
++	@GetMapping("/{petId}")
++	public ResponseEntity<PetTypeDetails> getDetails(@PathVariable Integer petId) {
++		return petTypeDetailsService.getDetails(petId)
++			.map(ResponseEntity::ok)
++			.orElse(ResponseEntity.notFound().build());
++	}
++}
+Index: src/main/java/org/springframework/samples/petclinic/pettypedetails/dto/PetTypeDetailsDTO.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/org/springframework/samples/petclinic/pettypedetails/dto/PetTypeDetailsDTO.java b/src/main/java/org/springframework/samples/petclinic/pettypedetails/dto/PetTypeDetailsDTO.java
+new file mode 100644
+--- /dev/null	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
++++ b/src/main/java/org/springframework/samples/petclinic/pettypedetails/dto/PetTypeDetailsDTO.java	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
+@@ -0,0 +1,43 @@
++package org.springframework.samples.petclinic.pettypedetails.dto;
++
++import org.springframework.stereotype.Component;
++
++@Component
++public class PetTypeDetailsDTO {
++	private Integer petId;
++	private String temperament;
++	private Integer length;
++	private Integer weight;
++
++	public Integer getPetId() {
++		return petId;
++	}
++
++	public void setPetId(Integer petId) {
++		this.petId = petId;
++	}
++
++	public String getTemperament() {
++		return temperament;
++	}
++
++	public void setTemperament(String temperament) {
++		this.temperament = temperament;
++	}
++
++	public Integer getLength() {
++		return length;
++	}
++
++	public void setLength(Integer length) {
++		this.length = length;
++	}
++
++	public Integer getWeight() {
++		return weight;
++	}
++
++	public void setWeight(Integer weight) {
++		this.weight = weight;
++	}
++}
+Index: src/main/java/org/springframework/samples/petclinic/pettypedetails/model/PetTypeDetails.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/org/springframework/samples/petclinic/pettypedetails/model/PetTypeDetails.java b/src/main/java/org/springframework/samples/petclinic/pettypedetails/model/PetTypeDetails.java
+new file mode 100644
+--- /dev/null	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
++++ b/src/main/java/org/springframework/samples/petclinic/pettypedetails/model/PetTypeDetails.java	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
+@@ -0,0 +1,60 @@
++package org.springframework.samples.petclinic.pettypedetails.model;
++
++import com.fasterxml.jackson.annotation.JsonIgnore;
++import jakarta.persistence.*;
++import org.springframework.samples.petclinic.model.BaseEntity;
++import org.springframework.samples.petclinic.owner.Pet;
++
++
++@Entity
++@Table(name = "pet_type_details")
++public class PetTypeDetails extends BaseEntity {
++
++	@OneToOne
++	@JoinColumn(name = "pet_id", nullable = false, unique = true)
++	@JsonIgnore
++	private Pet pet;
++
++	@Column(name = "temperament", length = 64)
++	private String temperament;
++
++
++	@Column(name = "length")
++	private Integer length;
++
++
++	@Column(name = "weight")
++	private Integer weight;
++
++	public Pet getPet() {
++		return pet;
++	}
++
++	public void setPet(Pet pet) {
++		this.pet = pet;
++	}
++
++	public String getTemperament() {
++		return temperament;
++	}
++
++	public void setTemperament(String temperament) {
++		this.temperament = temperament;
++	}
++
++	public Integer getLength() {
++		return length;
++	}
++
++	public void setLength(Integer length) {
++		this.length = length;
++	}
++
++	public Integer getWeight() {
++		return weight;
++	}
++
++	public void setWeight(Integer weight) {
++		this.weight = weight;
++	}
++}
+Index: src/main/java/org/springframework/samples/petclinic/pettypedetails/repository/PetRepository.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/org/springframework/samples/petclinic/pettypedetails/repository/PetRepository.java b/src/main/java/org/springframework/samples/petclinic/pettypedetails/repository/PetRepository.java
+new file mode 100644
+--- /dev/null	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
++++ b/src/main/java/org/springframework/samples/petclinic/pettypedetails/repository/PetRepository.java	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
+@@ -0,0 +1,12 @@
++package org.springframework.samples.petclinic.pettypedetails.repository;
++
++import org.springframework.data.jpa.repository.JpaRepository;
++import org.springframework.data.jpa.repository.Query;
++import org.springframework.samples.petclinic.owner.Pet;
++import org.springframework.samples.petclinic.owner.PetType;
++
++import java.util.List;
++
++public interface PetRepository extends JpaRepository<Pet, Integer> {
++
++}
+Index: src/main/java/org/springframework/samples/petclinic/pettypedetails/repository/PetTypeDetailsRepository.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/org/springframework/samples/petclinic/pettypedetails/repository/PetTypeDetailsRepository.java b/src/main/java/org/springframework/samples/petclinic/pettypedetails/repository/PetTypeDetailsRepository.java
+new file mode 100644
+--- /dev/null	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
++++ b/src/main/java/org/springframework/samples/petclinic/pettypedetails/repository/PetTypeDetailsRepository.java	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
+@@ -0,0 +1,14 @@
++package org.springframework.samples.petclinic.pettypedetails.repository;
++
++import org.springframework.data.repository.CrudRepository;
++import org.springframework.samples.petclinic.owner.Pet;
++import org.springframework.samples.petclinic.owner.PetType;
++import org.springframework.samples.petclinic.pettypedetails.model.PetTypeDetails;
++import org.springframework.stereotype.Repository;
++
++import java.util.Optional;
++
++@Repository
++public interface PetTypeDetailsRepository extends CrudRepository<PetTypeDetails, Integer> {
++	Optional<PetTypeDetails> findByPet(Pet pet);
++}
+Index: src/main/java/org/springframework/samples/petclinic/pettypedetails/service/PetTypeDetailsService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/org/springframework/samples/petclinic/pettypedetails/service/PetTypeDetailsService.java b/src/main/java/org/springframework/samples/petclinic/pettypedetails/service/PetTypeDetailsService.java
+new file mode 100644
+--- /dev/null	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
++++ b/src/main/java/org/springframework/samples/petclinic/pettypedetails/service/PetTypeDetailsService.java	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
+@@ -0,0 +1,55 @@
++package org.springframework.samples.petclinic.pettypedetails.service;
++
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.samples.petclinic.owner.Pet;
++import org.springframework.samples.petclinic.pettypedetails.dto.PetTypeDetailsDTO;
++import org.springframework.samples.petclinic.pettypedetails.model.PetTypeDetails;
++import org.springframework.samples.petclinic.pettypedetails.repository.PetRepository;
++import org.springframework.samples.petclinic.pettypedetails.repository.PetTypeDetailsRepository;
++import org.springframework.samples.petclinic.pettypedetails.util.CommonUtils;
++import org.springframework.stereotype.Service;
++import org.springframework.transaction.annotation.Transactional;
++
++import java.util.Optional;
++@Service
++@Transactional
++public class PetTypeDetailsService{
++
++	@Autowired
++	private PetTypeDetailsRepository petTypeDetailsRepository;
++	@Autowired
++	private PetRepository petRepository;
++
++//	public PetTypeDetails createOrUpdate(PetTypeDetailsDTO petTypeDetailsDTO) {
++//		PetType petType = petTypeRepo.findById(petTypeDetailsDTO.getPetTypeId())
++//			.orElseThrow(() -> new IllegalArgumentException("PetType not found: " + petTypeDetailsDTO.getPetTypeId()));
++//
++//		return petTypeDetailsRepository.save(CommonUtils.mapPetTypeDTOtoEntity(petTypeDetailsDTO, petType));
++//	}
++//
++//	public Optional<PetTypeDetails> getById(Integer petTypeDetailsId) {
++//		return petTypeDetailsRepository.findById(petTypeDetailsId);
++//	}
++
++	public Iterable<PetTypeDetails> getAll() {
++		return petTypeDetailsRepository.findAll();
++	}
++
++	public PetTypeDetails createDetails(PetTypeDetailsDTO details) {
++		Pet pet = petRepository.findById(details.getPetId())
++			.orElseThrow(() -> new RuntimeException("Pet not found"));
++		PetTypeDetails petTypeDetails;
++		if (petTypeDetailsRepository.findByPet(pet).isPresent()) {
++			petTypeDetails = CommonUtils.mapPetDetailsDTOtoEntity(details, null);
++		}else {
++			petTypeDetails = CommonUtils.mapPetDetailsDTOtoEntity(details, pet);
++		}
++		return petTypeDetailsRepository.save(petTypeDetails);
++	}
++
++	public Optional<PetTypeDetails> getDetails(Integer petId) {
++		Pet pet = petRepository.findById(petId)
++			.orElseThrow(() -> new RuntimeException("Pet not found"));
++		return petTypeDetailsRepository.findByPet(pet);
++	}
++}
+Index: src/main/java/org/springframework/samples/petclinic/pettypedetails/util/CommonUtils.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/org/springframework/samples/petclinic/pettypedetails/util/CommonUtils.java b/src/main/java/org/springframework/samples/petclinic/pettypedetails/util/CommonUtils.java
+new file mode 100644
+--- /dev/null	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
++++ b/src/main/java/org/springframework/samples/petclinic/pettypedetails/util/CommonUtils.java	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
+@@ -0,0 +1,16 @@
++package org.springframework.samples.petclinic.pettypedetails.util;
++
++import org.springframework.samples.petclinic.owner.Pet;
++import org.springframework.samples.petclinic.pettypedetails.dto.PetTypeDetailsDTO;
++import org.springframework.samples.petclinic.pettypedetails.model.PetTypeDetails;
++
++public class CommonUtils {
++	public static PetTypeDetails mapPetDetailsDTOtoEntity(PetTypeDetailsDTO petTypeDetailsDTO, Pet pet){
++		PetTypeDetails details = new PetTypeDetails();
++		details.setPet(pet);
++		details.setTemperament(petTypeDetailsDTO.getTemperament());
++		details.setLength(petTypeDetailsDTO.getLength());
++		details.setWeight(petTypeDetailsDTO.getWeight());
++		return details;
++	}
++}
+Index: src/main/resources/db/h2/data.sql
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/resources/db/h2/data.sql b/src/main/resources/db/h2/data.sql
+--- a/src/main/resources/db/h2/data.sql	(revision 30aab0ae764ad845b5eedd76028756835fec771f)
++++ b/src/main/resources/db/h2/data.sql	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
+@@ -51,3 +51,7 @@
+ INSERT INTO visits VALUES (default, 8, '2013-01-02', 'rabies shot');
+ INSERT INTO visits VALUES (default, 8, '2013-01-03', 'neutered');
+ INSERT INTO visits VALUES (default, 7, '2013-01-04', 'spayed');
++
++INSERT INTO pet_type_details(pet_id, temperament, length, weight) VALUES
++(1, 'Gentle', 70, 30),
++(2, 'Calm', 40, 5);
+Index: src/main/resources/db/h2/schema.sql
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/resources/db/h2/schema.sql b/src/main/resources/db/h2/schema.sql
+--- a/src/main/resources/db/h2/schema.sql	(revision 30aab0ae764ad845b5eedd76028756835fec771f)
++++ b/src/main/resources/db/h2/schema.sql	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
+@@ -62,3 +62,12 @@
+ );
+ ALTER TABLE visits ADD CONSTRAINT fk_visits_pets FOREIGN KEY (pet_id) REFERENCES pets (id);
+ CREATE INDEX visits_pet_id ON visits (pet_id);
++
++CREATE TABLE IF NOT EXISTS pet_type_details (
++  id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
++  temperament VARCHAR(64),
++  length INTEGER,
++  weight INTEGER,
++  pet_id INT UNIQUE,
++  CONSTRAINT fk_pet FOREIGN KEY (pet_id) REFERENCES pets(id)
++);
+Index: src/main/resources/messages/messages.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>ISO-8859-1
+===================================================================
+diff --git a/src/main/resources/messages/messages.properties b/src/main/resources/messages/messages.properties
+--- a/src/main/resources/messages/messages.properties	(revision 30aab0ae764ad845b5eedd76028756835fec771f)
++++ b/src/main/resources/messages/messages.properties	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
+@@ -46,3 +46,7 @@
+ editOwner=Edit Owner
+ addNewPet=Add New Pet
+ petsAndVisits=Pets and Visits
++petId=Pet Id
++temperament=Temperament
++length=length
++weight=weight
+Index: src/main/resources/templates/owners/ownerDetails.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/resources/templates/owners/ownerDetails.html b/src/main/resources/templates/owners/ownerDetails.html
+--- a/src/main/resources/templates/owners/ownerDetails.html	(revision 30aab0ae764ad845b5eedd76028756835fec771f)
++++ b/src/main/resources/templates/owners/ownerDetails.html	(revision 3f5b51a354ba207a77f2c968bb57f6472cf546de)
+@@ -48,12 +48,20 @@
+     <tr th:each="pet : ${owner.pets}">
+       <td valign="top">
+         <dl class="dl-horizontal">
++          <dt th:text="#{petId}">Id</dt>
++            <dd th:text="${pet.id}"></dd>
+           <dt th:text="#{name}">Name</dt>
+           <dd th:text="${pet.name}"></dd>
+           <dt th:text="#{birthDate}">Birth Date</dt>
+           <dd th:text="${#temporals.format(pet.birthDate, 'yyyy-MM-dd')}"></dd>
+           <dt th:text="#{type}">Type</dt>
+           <dd th:text="${pet.type}"></dd>
++          <dt th:text="#{temperament}">Temperament</dt>
++          <dd th:text="${pet.petTypeDetails?.temperament}"></dd>
++          <dt th:text="#{length}">length (CM)</dt>
++          <dd th:text="${pet.petTypeDetails?.length}"></dd>
++          <dt th:text="#{weight}">weight (KG)</dt>
++          <dd th:text="${pet.petTypeDetails?.weight}"></dd>
+         </dl>
+       </td>
+       <td valign="top">
+@@ -93,4 +101,4 @@
+ </body>
+ 
+ 
+-</html>
+\ No newline at end of file
++</html>
