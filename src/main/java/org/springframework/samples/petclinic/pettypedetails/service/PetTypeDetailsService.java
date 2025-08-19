@@ -38,13 +38,18 @@ public class PetTypeDetailsService{
 	public PetTypeDetails createDetails(PetTypeDetailsDTO details) {
 		Pet pet = petRepository.findById(details.getPetId())
 			.orElseThrow(() -> new RuntimeException("Pet not found"));
+		Optional<PetTypeDetails> existingPetTypeDetails = petTypeDetailsRepository.findById(details.getPetId());
 		PetTypeDetails petTypeDetails;
-		if (petTypeDetailsRepository.findByPet(pet).isPresent()) {
-			petTypeDetails = CommonUtils.mapPetDetailsDTOtoEntity(details, null);
+		if (existingPetTypeDetails.isPresent()) {
+			PetTypeDetails existingDetails = existingPetTypeDetails.get();
+			existingDetails.setTemperament(details.getTemperament());
+			existingDetails.setLength(details.getLength());
+			existingDetails.setWeight(details.getWeight());
+			return petTypeDetailsRepository.save(existingDetails);
 		}else {
 			petTypeDetails = CommonUtils.mapPetDetailsDTOtoEntity(details, pet);
+			return petTypeDetailsRepository.save(petTypeDetails);
 		}
-		return petTypeDetailsRepository.save(petTypeDetails);
 	}
 
 	public Optional<PetTypeDetails> getDetails(Integer petId) {
